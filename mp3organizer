@@ -1,0 +1,59 @@
+#!/bin/bash
+
+#        _       _                _      
+#       | |     | |              (_)     
+#   __ _| |_ __ | |__   __ ___  ___ _ __ 
+#  / _` | | '_ \| '_ \ / _` \ \/ / | '__| Shivaji Chalise (alphajr)
+# | (_| | | |_) | | | | (_| |>  <| | |    http://www.github.com/shivajichalise
+#  \__,_|_| .__/|_| |_|\__,_/_/\_\ |_|   
+#         | |                   _/ |     
+#         |_|                  |__/      
+#
+# organizes mp3 into directories based on performer's name
+
+# spinner
+spinnerArray=( '|' '/' '-' '\' )
+
+spin(){
+  clear
+  message=$1
+  while true
+  do
+    for i in "${spinnerArray[@]}"
+    do
+      printf "\033c"
+      printf "%s" "$message $i"
+      sleep 0.2
+    done
+  done
+  clear
+}
+
+mkdir -p "$HOME"/.cache/mp3organizer
+
+cacheDir="$HOME"/.cache/mp3organizer
+currentDir=$(pwd)
+
+find "$currentDir" -maxdepth 1 -type f -name "*.mp3" | sed 's/^.\///g' > "$cacheDir/musics"
+find "$currentDir" -maxdepth 1 -type f -name "*.m4a" | sed 's/^.\///g' >> "$cacheDir/musics"
+
+musicList="$cacheDir/musics"
+
+organize(){
+  spin "Organizing" &
+  pid=$!
+
+  while read -r line
+  do
+    performerName=$(mediainfo "$line" | grep -w "Performer" | tail -1 | cut -d: -f2 | cut -d/ -f1 | sed 's/^ //')
+    mkdir -p "$performerName"
+    musicName=$(mediainfo "$line" | grep "Complete name" | cut -d: -f2 | sed 's/^ //')
+    mv "$musicName" ./"$performerName"
+  done < "$musicList"
+  
+  kill $pid
+  printf "\033c"
+  printf "Finished organizing \n"
+}
+
+organize
